@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
 import Maintenance from './pages/Maintenance';
+import Reports from './pages/Reports';
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
@@ -53,6 +54,10 @@ export default function App() {
         <Route 
           path="/maintenance" 
           element={session ? <Maintenance /> : <Navigate to="/login" replace />} 
+        />
+        <Route 
+          path="/reports" 
+          element={session ? <Reports /> : <Navigate to="/login" replace />} 
         />
       </Routes>
     </Router>

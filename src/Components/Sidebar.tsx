@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { DashboardIcon, InventoryIcon, LogoutIcon, CloseIcon } from './Icons';
+import { DashboardIcon, InventoryIcon, LogoutIcon, CloseIcon, ChartBarIcon } from './Icons';
 
 interface SidebarProps {
   onLogout: () => void;
@@ -64,6 +64,10 @@ export default function Sidebar({ onLogout, isOpen, onClose }: SidebarProps) {
               </svg>
             </div>
             Maintenance
+          </NavLink>
+          <NavLink to="/reports" className={linkClass} onClick={() => window.innerWidth < 768 && onClose()}>
+            <ChartBarIcon />
+            Reports
           </NavLink>
         </nav>
 
