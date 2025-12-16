@@ -42,8 +42,8 @@ export default function Sidebar({ onLogout, isOpen, onClose }: SidebarProps) {
           </button>
 
           <h1 className="text-xl font-bold tracking-tight flex flex-col">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">LIGHT NORTH</span>
-            <span className="text-gray-400 text-sm font-medium tracking-widest">CALOOCAN</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">WORSHIP TEAM</span>
+            <span className="text-gray-400 text-sm font-medium tracking-widest">INVENTORY SYSTEM</span>
           </h1>
         </div>
 
