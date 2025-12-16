@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { supabase } from './lib/supabaseClient';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Inventory from './pages/Inventory';
+import Maintenance from './pages/Maintenance';
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
@@ -43,6 +45,14 @@ export default function App() {
         <Route 
           path="/" 
           element={session ? <Dashboard /> : <Navigate to="/login" replace />} 
+        />
+        <Route 
+          path="/inventory" 
+          element={session ? <Inventory /> : <Navigate to="/login" replace />} 
+        />
+        <Route 
+          path="/maintenance" 
+          element={session ? <Maintenance /> : <Navigate to="/login" replace />} 
         />
       </Routes>
     </Router>
