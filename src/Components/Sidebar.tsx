@@ -1,42 +1,47 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { User } from '@supabase/supabase-js';
 import { DashboardIcon, InventoryIcon, LogoutIcon, CloseIcon, ChartBarIcon } from './Icons';
 
 interface SidebarProps {
   onLogout: () => void;
   isOpen: boolean;
   onClose: () => void;
+  user: User | null;
 }
 
-export default function Sidebar({ onLogout, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ onLogout, isOpen, onClose, user }: SidebarProps) {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     isActive
       ? "group flex items-center gap-3 px-3 py-2.5 text-sm font-medium bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-400 rounded-xl border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]"
       : "group flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400 hover:text-gray-100 hover:bg-gray-800/40 rounded-xl transition-all duration-200";
+
+  const email = user?.email || 'User';
+  const initials = email.substring(0, 2).toUpperCase();
 
   return (
     <>
       {/* Mobile Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside className={`
-        fixed md:static inset-y-0 left-0 z-40
-        w-64 h-[calc(100vh-2rem)] m-4 
-        bg-[#1e293b]/90 md:bg-[#1e293b]/60 
-        border border-gray-800/50 backdrop-blur-xl 
-        flex flex-col rounded-2xl shadow-2xl shrink-0
+        fixed lg:static inset-y-0 left-0 z-40
+        w-64 h-screen
+        bg-[#1e293b]/90 lg:bg-[#1e293b]/60 
+        border-r border-gray-800/50 backdrop-blur-xl 
+        flex flex-col shadow-2xl shrink-0
         transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-[150%] md:translate-x-0'}
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 relative">
           <button 
             onClick={onClose}
-            className="absolute top-4 right-4 p-1 text-gray-400 hover:text-white md:hidden"
+            className="absolute top-4 right-4 p-1 text-gray-400 hover:text-white lg:hidden"
           >
             <CloseIcon />
           </button>
@@ -74,10 +79,10 @@ export default function Sidebar({ onLogout, isOpen, onClose }: SidebarProps) {
         <div className="p-4 border-t border-gray-800/50">
           <div className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-xl bg-gray-800/30 border border-gray-700/30">
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-xs font-bold text-white shadow-lg">
-              AD
+              {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-200 truncate">Admin User</p>
+              <p className="text-sm font-medium text-gray-200 truncate">{email}</p>
               <p className="text-xs text-gray-500 truncate">admin@lightnorth.com</p>
             </div>
           </div>

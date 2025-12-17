@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import { EditIcon, DeleteIcon } from './Icons';
 import ItemDetailsModal from './UI/ItemDetailsModal';
 
@@ -46,6 +47,33 @@ export default function InventoryTable({ items }: InventoryTableProps) {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
 
+  const handleItemClick = async (item: InventoryItem) => {
+    try {
+      const { data: history } = await supabase
+        .from('inventory_item_maintenance')
+        .select('*')
+        .eq('item_id', item.id)
+        .order('maintenance_date', { ascending: false });
+      
+      const itemWithHistory = {
+          ...item,
+          maintenanceHistory: history?.map((h: any) => ({
+              id: h.id,
+              type: h.maintenance_type,
+              date: h.maintenance_date,
+              performedBy: h.performed_by,
+              description: h.description,
+              cost: h.cost,
+              nextScheduledDate: h.next_maintenance_date
+          })) || []
+      };
+      setSelectedItem(itemWithHistory);
+    } catch (error) {
+      console.error("Error fetching history", error);
+      setSelectedItem(item);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-[#1e293b]/40 border border-gray-800/50 rounded-xl overflow-hidden backdrop-blur-sm shadow-xl flex flex-col">
@@ -65,7 +93,7 @@ export default function InventoryTable({ items }: InventoryTableProps) {
                 <tr 
                   key={item.id} 
                   className="hover:bg-gray-800/30 transition-colors group h-[52px] cursor-pointer"
-                  onClick={() => setSelectedItem(item)}
+                  onClick={() => handleItemClick(item)}
                 >
                   <td className="px-4 py-2 font-medium text-gray-200 group-hover:text-white transition-colors">
                     <div className="flex items-center gap-3">

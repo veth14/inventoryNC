@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { User } from '@supabase/supabase-js';
 import Sidebar from './Sidebar';
 import { MenuIcon } from './Icons';
 
 interface LayoutProps {
   children: React.ReactNode;
   onLogout: () => void;
+  user: User | null;
 }
 
-export default function Layout({ children, onLogout }: LayoutProps) {
+export default function Layout({ children, onLogout, user }: LayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
@@ -21,7 +23,8 @@ export default function Layout({ children, onLogout }: LayoutProps) {
       <Sidebar 
         onLogout={onLogout} 
         isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
+        onClose={() => setIsSidebarOpen(false)}
+        user={user}
       />
 
       {/* Main area: scrollable page content */}
@@ -31,7 +34,7 @@ export default function Layout({ children, onLogout }: LayoutProps) {
           {/* Mobile Menu Trigger */}
           <button 
             onClick={() => setIsSidebarOpen(true)}
-            className="md:hidden absolute top-4 left-4 z-50 p-2 text-gray-400 hover:text-white bg-gray-800/50 backdrop-blur-md border border-gray-700/50 rounded-lg shadow-lg"
+            className="lg:hidden absolute top-4 left-4 z-50 p-2 text-gray-400 hover:text-white bg-gray-800/50 backdrop-blur-md border border-gray-700/50 rounded-lg shadow-lg"
           >
             <MenuIcon />
           </button>

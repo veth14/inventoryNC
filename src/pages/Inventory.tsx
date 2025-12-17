@@ -1,113 +1,140 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import Layout from '../Components/Layout';
 import InventoryTable, { InventoryItem } from '../Components/InventoryTable';
-import { PlusIcon, SearchIcon, FilterIcon } from '../Components/Icons';
+import { PlusIcon, SearchIcon, FilterIcon, InventoryIcon, BoxIcon, AlertIcon } from '../Components/Icons';
+import AddItemModal from '../Components/UI/AddItemModal';
 
-export default function Inventory() {
+interface InventoryProps {
+  session: Session | null;
+}
+
+export default function Inventory({ session }: InventoryProps) {
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
-  // Mock Data - Expanded for the full inventory page
-  const allItems: InventoryItem[] = [
-    { 
-      id: 1, 
-      name: 'Shure SM58 Microphone', 
-      category: 'Audio', 
-      quantity: 4, 
-      status: 'In Use', 
-      imageUrl: 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=150&q=80',
-      brand: 'Shure',
-      model: 'SM58',
-      serialNumber: 'SH-58-001',
-      condition: 'Good',
-      location: 'Stage Left',
-      notes: 'Primary vocal mic for worship leader.',
-      datePurchased: '2023-01-15',
-      lastChecked: '2023-11-20',
-      createdAt: '2023-01-15T10:00:00Z',
-      updatedAt: '2023-11-20T14:30:00Z'
-    },
-    { 
-      id: 2, 
-      name: 'XLR Cable (20ft)', 
-      category: 'Cables', 
-      quantity: 12, 
-      status: 'Available',
-      brand: 'Generic',
-      model: 'XLR-20',
-      condition: 'New',
-      location: 'Cable Bin A',
-      notes: 'Spare cables for general use.',
-      datePurchased: '2023-06-01',
-      lastChecked: '2023-12-01',
-      createdAt: '2023-06-01T09:00:00Z',
-      updatedAt: '2023-12-01T11:15:00Z'
-    },
-    { 
-      id: 3, 
-      name: 'Yamaha Acoustic Guitar', 
-      category: 'Instruments', 
-      quantity: 1, 
-      status: 'Maintenance', 
-      imageUrl: 'https://images.unsplash.com/photo-1550291652-6ea9114a47b1?auto=format&fit=crop&w=150&q=80',
-      brand: 'Yamaha',
-      model: 'F310',
-      serialNumber: 'YAM-F310-998',
-      condition: 'Fair',
-      location: 'Instrument Storage',
-      notes: 'Bridge pin loose, needs replacement.',
-      datePurchased: '2020-03-10',
-      lastChecked: '2023-12-05',
-      createdAt: '2020-03-10T14:00:00Z',
-      updatedAt: '2023-12-05T16:45:00Z'
-    },
-    { 
-      id: 4, 
-      name: 'HDMI Splitter', 
-      category: 'Video', 
-      quantity: 2, 
-      status: 'Available',
-      brand: 'Orei',
-      model: '1x4 Splitter',
-      condition: 'Good',
-      location: 'Media Booth',
-      notes: 'Used for main projection system.',
-      datePurchased: '2022-11-15',
-      lastChecked: '2023-10-15',
-      createdAt: '2022-11-15T13:30:00Z',
-      updatedAt: '2023-10-15T09:20:00Z'
-    },
-    { 
-      id: 5, 
-      name: 'Focusrite Scarlett 2i2', 
-      category: 'Audio Interface', 
-      quantity: 1, 
-      status: 'In Use', 
-      imageUrl: 'https://images.unsplash.com/photo-1598653222000-6b7b7a552625?auto=format&fit=crop&w=150&q=80',
-      brand: 'Focusrite',
-      model: 'Scarlett 2i2 3rd Gen',
-      serialNumber: 'FC-2i2-776',
-      condition: 'Excellent',
-      location: 'Recording Desk',
-      notes: 'Used for livestream audio mix.',
-      datePurchased: '2021-08-20',
-      lastChecked: '2023-11-25',
-      createdAt: '2021-08-20T11:00:00Z',
-      updatedAt: '2023-11-25T15:10:00Z'
-    },
-    { id: 6, name: 'DMX Controller', category: 'Lighting', quantity: 1, status: 'Available' },
-    { id: 7, name: 'Stage Box 16ch', category: 'Audio', quantity: 1, status: 'In Use' },
-    { id: 8, name: 'Extension Cord (10m)', category: 'Cables', quantity: 5, status: 'Available' },
-    { id: 9, name: 'AA Batteries (Pack)', category: 'Consumables', quantity: 20, status: 'Available' },
-    { id: 10, name: 'Projector Screen', category: 'Video', quantity: 1, status: 'In Use' },
-    { id: 11, name: 'Drum Sticks (Pair)', category: 'Instruments', quantity: 3, status: 'Out of Stock', imageUrl: 'https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?auto=format&fit=crop&w=150&q=80' },
-    { id: 12, name: 'Microphone Stand', category: 'Audio', quantity: 6, status: 'Available' },
-  ];
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const mappedItems: InventoryItem[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.item_name,
+          category: item.category,
+          quantity: item.quantity,
+          status: item.status,
+          imageUrl: item.photo_url,
+          brand: item.brand,
+          model: item.model,
+          serialNumber: item.serial_number,
+          condition: item.condition,
+          location: item.location,
+          notes: item.notes,
+          datePurchased: item.date_purchased,
+          lastChecked: item.last_checked,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at
+        }));
+        setItems(mappedItems);
+      }
+    } catch (err: any) {
+      console.error('Error fetching inventory:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Use the fetched items instead of mock data
+  const allItems = items;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state && (location.state as any).openAddModal) {
+      setIsAddModalOpen(true);
+      // Clear state so it doesn't reopen on refresh (optional, but good practice)
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
+  const handleAddItem = async (newItem: any) => {
+    try {
+      setLoading(true);
+      let photoUrl = '';
+
+      if (newItem.imageFile) {
+        const fileExt = newItem.imageFile.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('inventory-photos')
+          .upload(filePath, newItem.imageFile);
+
+        if (uploadError) {
+            console.error('Error uploading image:', uploadError);
+            // Continue without image if upload fails
+        } else {
+            const { data: { publicUrl } } = supabase.storage
+            .from('inventory-photos')
+            .getPublicUrl(filePath);
+            
+            photoUrl = publicUrl;
+        }
+      }
+
+      const { error: itemError } = await supabase
+        .from('inventory_items')
+        .insert([{
+          item_name: newItem.name,
+          category: newItem.category,
+          brand: newItem.brand,
+          model: newItem.model,
+          serial_number: newItem.serialNumber,
+          quantity: newItem.quantity,
+          status: newItem.status,
+          location: newItem.location,
+          notes: newItem.notes,
+          photo_url: photoUrl,
+          date_purchased: newItem.datePurchased || null,
+          condition: 'Good', // Default condition
+          last_checked: new Date().toISOString()
+        }]);
+
+      if (itemError) throw itemError;
+
+      // Refresh items
+      fetchItems();
+      setIsAddModalOpen(false);
+    } catch (error: any) {
+      console.error('Error adding item:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const categories = ['All', 'Audio', 'Video', 'Lighting', 'Instruments', 'Cables', 'Consumables'];
 
@@ -118,61 +145,114 @@ export default function Inventory() {
     return matchesSearch && matchesCategory;
   });
 
+  // Stats
+  const totalQuantity = allItems.reduce((acc, item) => acc + item.quantity, 0);
+  const lowStockCount = allItems.filter(item => item.quantity < 3).length;
+  const categoriesCount = new Set(allItems.map(i => i.category)).size;
+
   return (
-    <Layout onLogout={handleLogout}>
-      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+    <Layout onLogout={handleLogout} user={session?.user || null}>
+      <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Inventory Management</h1>
-            <p className="text-sm text-gray-400 mt-1">View, track, and manage all church equipment.</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-xl text-cyan-400 border border-cyan-500/20 shadow-lg shadow-cyan-500/10 flex items-center justify-center">
+              <InventoryIcon />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white tracking-tight">
+                Inventory Management
+              </h1>
+              <p className="text-sm text-gray-400 mt-1">View, track, and manage all church equipment.</p>
+            </div>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 active:scale-95">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 active:scale-95 transform hover:-translate-y-0.5"
+          >
             <PlusIcon />
             Add New Item
           </button>
         </div>
 
-        {/* Filters & Search */}
-        <div className="bg-[#1e293b]/40 border border-gray-800/50 rounded-xl p-4 mb-6 backdrop-blur-sm">
-          <div className="flex flex-col md:flex-row gap-4 justify-between">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-                <SearchIcon />
-              </div>
-              <input
-                type="text"
-                placeholder="Search items, categories..."
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-gray-700/50 rounded-lg text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-[#1e293b]/60 border border-gray-800/50 rounded-xl p-4 backdrop-blur-sm flex items-center gap-4">
+            <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400">
+              <BoxIcon />
             </div>
-
-            {/* Category Filter */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-              <FilterIcon className="text-gray-500 shrink-0" />
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap ${
-                    selectedCategory === cat
-                      ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
-                      : 'bg-gray-800/30 text-gray-400 border-gray-700/30 hover:bg-gray-800/50 hover:text-gray-300'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Total Items</p>
+              <h3 className="text-xl font-bold text-white">{totalQuantity}</h3>
+            </div>
+          </div>
+          <div className="bg-[#1e293b]/60 border border-gray-800/50 rounded-xl p-4 backdrop-blur-sm flex items-center gap-4">
+            <div className="p-3 bg-purple-500/10 rounded-lg text-purple-400">
+              <FilterIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Categories</p>
+              <h3 className="text-xl font-bold text-white">{categoriesCount}</h3>
+            </div>
+          </div>
+          <div className="bg-[#1e293b]/60 border border-gray-800/50 rounded-xl p-4 backdrop-blur-sm flex items-center gap-4">
+            <div className="p-3 bg-rose-500/10 rounded-lg text-rose-400">
+              <AlertIcon />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Low Stock</p>
+              <h3 className="text-xl font-bold text-white">{lowStockCount} Items</h3>
             </div>
           </div>
         </div>
 
+        {/* Filters & Search */}
+        <div className="bg-[#1e293b]/40 border border-gray-800/50 rounded-2xl p-1.5 backdrop-blur-sm flex flex-col md:flex-row gap-2">
+          {/* Search */}
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500">
+              <SearchIcon />
+            </div>
+            <input
+              type="text"
+              placeholder="Search items, categories..."
+              className="w-full pl-11 pr-4 py-3 bg-transparent rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:bg-gray-800/50 transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Category Filter */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-gray-900/30 rounded-xl p-1 border border-gray-800/30">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-2 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${
+                  selectedCategory === cat
+                    ? 'bg-gray-700 text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Inventory Table */}
-        <InventoryTable items={filteredItems} />
+        <div className="bg-[#1e293b]/40 border border-gray-800/50 rounded-2xl overflow-hidden backdrop-blur-sm shadow-xl">
+          <InventoryTable items={filteredItems} />
+        </div>
       </div>
+
+      {/* Add Item Modal */}
+      {isAddModalOpen && (
+        <AddItemModal 
+          onClose={() => setIsAddModalOpen(false)} 
+          onSave={handleAddItem} 
+        />
+      )}
     </Layout>
   );
 }

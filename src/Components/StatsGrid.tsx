@@ -1,11 +1,17 @@
 import React from 'react';
 import { BoxIcon, AlertIcon, WrenchIcon } from './Icons';
 
-export default function StatsGrid() {
+interface StatsGridProps {
+  totalItems: number;
+  needsMaintenance: number;
+  needsReplacement: number;
+}
+
+export default function StatsGrid({ totalItems, needsMaintenance, needsReplacement }: StatsGridProps) {
   const stats = [
-    { label: 'Total Tracked', value: '124', color: 'text-cyan-400', bg: 'from-cyan-500/20 to-blue-500/5', border: 'border-cyan-500/20', icon: <BoxIcon /> },
-    { label: 'Need Maintenance', value: '8', color: 'text-amber-400', bg: 'from-amber-500/20 to-orange-500/5', border: 'border-amber-500/20', icon: <WrenchIcon /> },
-    { label: 'Needs Replacement', value: '5', color: 'text-rose-400', bg: 'from-rose-500/20 to-pink-500/5', border: 'border-rose-500/20', icon: <AlertIcon /> },
+    { label: 'Total Tracked', value: totalItems.toString(), color: 'text-cyan-400', bg: 'from-cyan-500/20 to-blue-500/5', border: 'border-cyan-500/20', icon: <BoxIcon /> },
+    { label: 'Need Maintenance', value: needsMaintenance.toString(), color: 'text-amber-400', bg: 'from-amber-500/20 to-orange-500/5', border: 'border-amber-500/20', icon: <WrenchIcon /> },
+    { label: 'Needs Replacement', value: needsReplacement.toString(), color: 'text-rose-400', bg: 'from-rose-500/20 to-pink-500/5', border: 'border-rose-500/20', icon: <AlertIcon /> },
   ];
 
   return (

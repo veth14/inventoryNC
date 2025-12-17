@@ -45,19 +45,19 @@ export default function App() {
         />
         <Route 
           path="/" 
-          element={session ? <Dashboard /> : <Navigate to="/login" replace />} 
+          element={session ? <Dashboard session={session} /> : <Navigate to="/login" replace />} 
         />
         <Route 
           path="/inventory" 
-          element={session ? <Inventory /> : <Navigate to="/login" replace />} 
+          element={session ? <Inventory session={session} /> : <Navigate to="/login" replace />} 
         />
         <Route 
           path="/maintenance" 
-          element={session ? <Maintenance /> : <Navigate to="/login" replace />} 
+          element={session ? <Maintenance session={session} /> : <Navigate to="/login" replace />} 
         />
         <Route 
           path="/reports" 
-          element={session ? <Reports /> : <Navigate to="/login" replace />} 
+          element={session ? <Reports session={session} /> : <Navigate to="/login" replace />} 
         />
       </Routes>
     </Router>

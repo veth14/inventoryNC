@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { Session } from '@supabase/supabase-js';
 import Layout from '../Components/Layout';
 import { supabase } from '../lib/supabaseClient';
 import { WrenchIcon, SearchIcon, FilterIcon, PlusIcon, EditIcon, DeleteIcon } from '../Components/Icons';
 import ItemDetailsModal from '../Components/UI/ItemDetailsModal';
+import LogIssueModal from '../Components/UI/LogIssueModal';
 
 interface MaintenanceItem {
   id: number;
@@ -35,156 +38,144 @@ interface MaintenanceItem {
 
 const ITEMS_PER_PAGE = 8;
 
-export default function Maintenance() {
+interface MaintenanceProps {
+  session: Session | null;
+}
+
+export default function Maintenance({ session }: MaintenanceProps) {
+  const [maintenanceItems, setMaintenanceItems] = useState<MaintenanceItem[]>([]);
+  const [allItems, setAllItems] = useState<{id: string, name: string}[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
-  // Mock Data matching the user's requested fields
-  const maintenanceItems: MaintenanceItem[] = [
-    {
-      id: 1,
-      name: 'Shure SM58 Microphone',
-      category: 'Audio Gear',
-      brand: 'Shure',
-      model: 'SM58',
-      brandModel: 'Shure SM58',
-      serialNumber: 'SN12345678',
-      quantity: 1,
-      condition: 'Needs Repair',
-      status: 'Under Repair',
-      location: 'Tech Booth',
-      notes: 'Grill dented, intermittent signal cut.',
-      lastChecked: '2023-10-25',
-      imageUrl: 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=150&q=80',
-      datePurchased: '2022-01-15',
-      createdAt: '2022-01-15T10:00:00Z',
-      updatedAt: '2023-10-25T14:30:00Z',
-      maintenanceHistory: [
-        {
-          id: 101,
-          type: 'Repair',
-          date: '2023-10-26',
-          performedBy: 'Audio Tech Team',
-          description: 'Diagnosed intermittent signal. Cable connection inside mic body is loose. Needs resoldering.',
-          cost: 0,
-          nextScheduledDate: '2023-11-05'
-        },
-        {
-          id: 102,
-          type: 'Routine Check',
-          date: '2023-06-15',
-          performedBy: 'John Doe',
-          description: 'Cleaned grill and checked frequency response. All good.',
-          cost: 0
-        }
-      ]
-    },
-    {
-      id: 2,
-      name: 'XLR Cable (20ft)',
-      category: 'Cable',
-      brand: 'Generic',
-      model: 'XLR-20',
-      brandModel: 'Generic',
-      quantity: 1,
-      condition: 'Broken',
-      status: 'Under Repair',
-      location: 'Storage Room',
-      notes: 'Connector loose, needs soldering.',
-      lastChecked: '2023-11-01',
-      datePurchased: '2021-05-20',
-      createdAt: '2021-05-20T09:00:00Z',
-      updatedAt: '2023-11-01T11:15:00Z',
-      maintenanceHistory: [
-        {
-          id: 201,
-          type: 'Inspection',
-          date: '2023-11-01',
-          performedBy: 'Volunteer Team',
-          description: 'Found connector housing cracked and pins bent. Marked for repair.',
-          cost: 0
-        }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Yamaha Acoustic Guitar',
-      category: 'Instrument',
-      brand: 'Yamaha',
-      model: 'F310',
-      brandModel: 'Yamaha F310',
-      serialNumber: 'YAM998877',
-      quantity: 1,
-      condition: 'Fair',
-      status: 'Available',
-      location: 'Stage',
-      notes: 'High action, needs setup.',
-      lastChecked: '2023-11-10',
-      imageUrl: 'https://images.unsplash.com/photo-1550291652-6ea9114a47b1?auto=format&fit=crop&w=150&q=80',
-      datePurchased: '2019-08-10',
-      createdAt: '2019-08-10T14:00:00Z',
-      updatedAt: '2023-11-10T16:45:00Z',
-      maintenanceHistory: [
-        {
-          id: 301,
-          type: 'Setup',
-          date: '2023-01-20',
-          performedBy: 'Local Music Shop',
-          description: 'Full setup: truss rod adjustment, fret leveling, and new strings.',
-          cost: 2500,
-          nextScheduledDate: '2024-01-20'
-        },
-        {
-          id: 302,
-          type: 'String Change',
-          date: '2023-08-15',
-          performedBy: 'Worship Leader',
-          description: 'Replaced strings with Elixir Nanoweb Light.',
-          cost: 850
-        }
-      ]
-    },
-    {
-      id: 4,
-      name: 'DMX Controller',
-      category: 'Lighting',
-      brand: 'Generic',
-      model: 'DMX512',
-      brandModel: 'Generic DMX512',
-      quantity: 1,
-      condition: 'Good',
-      status: 'Available',
-      location: 'Tech Booth',
-      notes: 'Fader 3 slightly sticky.',
-      lastChecked: '2023-11-15',
-      datePurchased: '2020-11-15',
-      createdAt: '2020-11-15T13:30:00Z',
-      updatedAt: '2023-11-15T09:20:00Z'
-    },
-    {
-      id: 5,
-      name: 'HDMI Splitter',
-      category: 'Video',
-      brand: 'Orei',
-      model: '1x4',
-      brandModel: 'Orei 1x4',
-      quantity: 1,
-      condition: 'Good',
-      status: 'In Use',
-      location: 'Media Desk',
-      notes: 'Power adapter replaced.',
-      lastChecked: '2023-11-20',
-      datePurchased: '2022-03-01',
-      createdAt: '2022-03-01T11:00:00Z',
-      updatedAt: '2023-11-20T15:10:00Z'
+  useEffect(() => {
+    fetchMaintenanceItems();
+    fetchAllItems();
+  }, []);
+
+  const fetchAllItems = async () => {
+      const { data } = await supabase.from('inventory_items').select('id, item_name');
+      if (data) {
+          setAllItems(data.map((i: any) => ({ id: i.id, name: i.item_name })));
+      }
+  };
+
+  const fetchMaintenanceItems = async () => {
+    try {
+      setLoading(true);
+      // Fetch items that need maintenance
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('inventory_items')
+        .select('*')
+        .or('status.eq.Under Repair,condition.eq.Needs Repair,condition.eq.Broken');
+
+      if (itemsError) throw itemsError;
+
+      if (itemsData) {
+        // For each item, fetch its maintenance history
+        const itemsWithHistory = await Promise.all(itemsData.map(async (item: any) => {
+          const { data: historyData, error: historyError } = await supabase
+            .from('inventory_item_maintenance')
+            .select('*')
+            .eq('item_id', item.id)
+            .order('maintenance_date', { ascending: false });
+          
+          if (historyError) console.error('Error fetching history for item', item.id, historyError);
+
+          return {
+            id: item.id,
+            name: item.item_name,
+            category: item.category,
+            brand: item.brand,
+            model: item.model,
+            brandModel: `${item.brand || ''} ${item.model || ''}`.trim(),
+            serialNumber: item.serial_number,
+            quantity: item.quantity,
+            condition: item.condition,
+            status: item.status,
+            location: item.location,
+            notes: item.notes,
+            lastChecked: item.last_checked,
+            imageUrl: item.photo_url,
+            datePurchased: item.date_purchased,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
+            maintenanceHistory: historyData?.map((h: any) => ({
+              id: h.id,
+              type: h.maintenance_type,
+              date: h.maintenance_date,
+              performedBy: h.performed_by,
+              description: h.description,
+              cost: h.cost,
+              nextScheduledDate: h.next_maintenance_date
+            })) || []
+          };
+        }));
+        
+        setMaintenanceItems(itemsWithHistory);
+      }
+    } catch (error) {
+      console.error('Error fetching maintenance items:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCondition, setSelectedCondition] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedItem, setSelectedItem] = useState<MaintenanceItem | null>(null);
+  const [isLogIssueModalOpen, setIsLogIssueModalOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state && (location.state as any).openLogIssueModal) {
+      setIsLogIssueModalOpen(true);
+      // Clear state so it doesn't reopen on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
+  const handleLogIssue = async (issue: any) => {
+    try {
+      setLoading(true);
+      
+      const { error: maintenanceError } = await supabase
+        .from('inventory_item_maintenance')
+        .insert([{
+          item_id: issue.itemId,
+          maintenance_type: issue.maintenanceType,
+          description: issue.description,
+          performed_by: issue.performedBy,
+          maintenance_date: issue.maintenanceDate,
+          cost: parseFloat(issue.cost) || 0,
+          next_maintenance_date: issue.nextMaintenanceDate || null
+        }]);
+
+      if (maintenanceError) throw maintenanceError;
+
+      // Update item status if needed
+      if (issue.maintenanceType === 'Broken' || issue.maintenanceType === 'Repair Needed') {
+         const status = 'Under Repair';
+         const condition = issue.maintenanceType === 'Broken' ? 'Broken' : 'Needs Repair';
+         
+         await supabase
+          .from('inventory_items')
+          .update({ status, condition })
+          .eq('id', issue.itemId);
+      }
+
+      fetchMaintenanceItems();
+      setIsLogIssueModalOpen(false);
+    } catch (error) {
+      console.error('Error logging issue:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const conditions = ['All', 'New', 'Good', 'Fair', 'Needs Repair', 'Broken'];
 
@@ -230,65 +221,106 @@ export default function Maintenance() {
     }
   };
 
+  // Stats
+  const underRepairCount = maintenanceItems.filter(i => i.status === 'Under Repair').length;
+  const needsRepairCount = maintenanceItems.filter(i => i.condition === 'Needs Repair' || i.condition === 'Broken').length;
+  const totalIssues = maintenanceItems.length; // Just total items in log for now
+
   return (
-    <Layout onLogout={handleLogout}>
-      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+    <Layout onLogout={handleLogout} user={session?.user || null}>
+      <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
         
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
-              Maintenance Log
-            </h1>
-            <p className="text-sm text-gray-400 mt-1">Track item conditions, repairs, and status updates.</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-xl text-orange-400 border border-orange-500/20 shadow-lg shadow-orange-500/10 flex items-center justify-center">
+              <WrenchIcon />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white tracking-tight">
+                Maintenance Log
+              </h1>
+              <p className="text-sm text-gray-400 mt-1">Track item conditions, repairs, and status updates.</p>
+            </div>
           </div>
           
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 active:scale-95">
+          <button 
+            onClick={() => setIsLogIssueModalOpen(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 active:scale-95 transform hover:-translate-y-0.5"
+          >
             <PlusIcon />
             Log Issue
           </button>
         </div>
 
-        {/* Filters & Search */}
-        <div className="bg-[#1e293b]/40 border border-gray-800/50 rounded-xl p-4 mb-6 backdrop-blur-sm">
-          <div className="flex flex-col md:flex-row gap-4 justify-between">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-                <SearchIcon />
-              </div>
-              <input
-                type="text"
-                placeholder="Search items, notes..."
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-gray-700/50 rounded-lg text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-all"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-[#1e293b]/60 border border-gray-800/50 rounded-xl p-4 backdrop-blur-sm flex items-center gap-4">
+            <div className="p-3 bg-orange-500/10 rounded-lg text-orange-400">
+              <WrenchIcon />
             </div>
+            <div>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Under Repair</p>
+              <h3 className="text-xl font-bold text-white">{underRepairCount} Items</h3>
+            </div>
+          </div>
+          <div className="bg-[#1e293b]/60 border border-gray-800/50 rounded-xl p-4 backdrop-blur-sm flex items-center gap-4">
+            <div className="p-3 bg-rose-500/10 rounded-lg text-rose-400">
+              <FilterIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Critical Issues</p>
+              <h3 className="text-xl font-bold text-white">{needsRepairCount} Items</h3>
+            </div>
+          </div>
+          <div className="bg-[#1e293b]/60 border border-gray-800/50 rounded-xl p-4 backdrop-blur-sm flex items-center gap-4">
+            <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400">
+              <SearchIcon />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Total Tracked</p>
+              <h3 className="text-xl font-bold text-white">{totalIssues} Items</h3>
+            </div>
+          </div>
+        </div>
 
-            {/* Condition Filter */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-              <FilterIcon className="text-gray-500 shrink-0" />
-              {conditions.map((cond) => (
-                <button
-                  key={cond}
-                  onClick={() => setSelectedCondition(cond)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap ${
-                    selectedCondition === cond
-                      ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                      : 'bg-gray-800/30 text-gray-400 border-gray-700/30 hover:bg-gray-800/50 hover:text-gray-300'
-                  }`}
-                >
-                  {cond}
-                </button>
-              ))}
+        {/* Filters & Search */}
+        <div className="bg-[#1e293b]/40 border border-gray-800/50 rounded-2xl p-1.5 backdrop-blur-sm flex flex-col md:flex-row gap-2">
+          {/* Search */}
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500">
+              <SearchIcon />
             </div>
+            <input
+              type="text"
+              placeholder="Search items, notes..."
+              className="w-full pl-11 pr-4 py-3 bg-transparent rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:bg-gray-800/50 transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Condition Filter */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-gray-900/30 rounded-xl p-1 border border-gray-800/30">
+            {conditions.map((cond) => (
+              <button
+                key={cond}
+                onClick={() => setSelectedCondition(cond)}
+                className={`px-4 py-2 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${
+                  selectedCondition === cond
+                    ? 'bg-gray-700 text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                }`}
+              >
+                {cond}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Table */}
         <div className="flex flex-col gap-4">
-          <div className="bg-[#1e293b]/40 border border-gray-800/50 rounded-xl overflow-hidden backdrop-blur-sm shadow-xl flex flex-col">
+          <div className="bg-[#1e293b]/40 border border-gray-800/50 rounded-2xl overflow-hidden backdrop-blur-sm shadow-xl flex flex-col">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[11px] text-gray-400">
                 <thead className="bg-gray-900/50 text-gray-300 font-medium border-b border-gray-800/50">
@@ -398,6 +430,14 @@ export default function Maintenance() {
         <ItemDetailsModal 
           item={selectedItem} 
           onClose={() => setSelectedItem(null)} 
+        />
+      )}
+
+      {isLogIssueModalOpen && (
+        <LogIssueModal 
+          onClose={() => setIsLogIssueModalOpen(false)}
+          onSave={handleLogIssue}
+          items={allItems}
         />
       )}
     </Layout>

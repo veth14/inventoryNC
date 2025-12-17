@@ -1,5 +1,6 @@
 import React from 'react';
-import { PlusIcon, ScanIcon, FileTextIcon, AlertIcon, WrenchIcon } from './Icons';
+import { useNavigate } from 'react-router-dom';
+import { PlusIcon, ScanIcon, FileTextIcon, AlertIcon, WrenchIcon, InventoryIcon, ChartBarIcon } from './Icons';
 
 const QuickActionCard = ({ icon: Icon, title, description, onClick, colorClass }: any) => (
   <button 
@@ -30,6 +31,8 @@ const AlertItem = ({ title, message, type, className = '' }: { title: string, me
 );
 
 export const DashboardWidgets = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       {/* Quick Actions Section - Spans 2 columns on large screens */}
@@ -41,28 +44,28 @@ export const DashboardWidgets = () => {
             title="Add New Item"
             description="Register new equipment into the inventory system."
             colorClass="cyan"
-            onClick={() => console.log('Add Item')}
+            onClick={() => navigate('/inventory', { state: { openAddModal: true } })}
           />
           <QuickActionCard 
-            icon={ScanIcon}
-            title="Scan QR Code"
-            description="Quickly lookup items by scanning their tag."
-            colorClass="purple"
-            onClick={() => console.log('Scan QR')}
-          />
-          <QuickActionCard 
-            icon={FileTextIcon}
-            title="Generate Report"
-            description="Download inventory status and valuation reports."
-            colorClass="emerald"
-            onClick={() => console.log('Report')}
-          />
-          <QuickActionCard 
-            icon={WrenchIcon}
-            title="Maintenance Log"
-            description="Record repairs and maintenance schedules."
+            icon={AlertIcon}
+            title="Report Issue"
+            description="Log a maintenance issue or broken equipment."
             colorClass="orange"
-            onClick={() => console.log('Maintenance')}
+            onClick={() => navigate('/maintenance', { state: { openLogIssueModal: true } })}
+          />
+          <QuickActionCard 
+            icon={InventoryIcon}
+            title="View Inventory"
+            description="Browse and manage all church equipment."
+            colorClass="purple"
+            onClick={() => navigate('/inventory')}
+          />
+          <QuickActionCard 
+            icon={ChartBarIcon}
+            title="View Reports"
+            description="Analyze inventory status and maintenance costs."
+            colorClass="emerald"
+            onClick={() => navigate('/reports')}
           />
         </div>
       </div>
@@ -91,6 +94,7 @@ export const DashboardWidgets = () => {
           />
         </div>
       </div>
+
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CloseIcon, WrenchIcon } from '../Icons';
 
 export interface MaintenanceRecord {
@@ -76,10 +77,10 @@ export default function ItemDetailsModal({ item, onClose }: ItemDetailsModalProp
     ? item.maintenanceHistory[0] 
     : null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div 
-        className="relative w-full max-w-3xl bg-[#1e293b] border border-gray-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-3xl bg-[#1e293b]/60 backdrop-blur-xl border border-gray-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -331,7 +332,8 @@ export default function ItemDetailsModal({ item, onClose }: ItemDetailsModalProp
           </button>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
 
